@@ -46,7 +46,7 @@ SpinConfigTypeList = ["NeelSkyrmion",    # 0
                       "Ferro",           # 4
                       "AntiFerro",       # 5
                       "CustomSkyrmion"] # 6
-SpinConfig_Type = SpinConfigTypeList[6]
+SpinConfig_Type = SpinConfigTypeList[3]
 SkyrDiameter = 12
 vorticity = 1.0
 helicity = 0.0
