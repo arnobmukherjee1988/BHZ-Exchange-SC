@@ -46,7 +46,7 @@ SpinConfigTypeList = ["NeelSkyrmion",    # 0
                       "Ferro",           # 4
                       "AntiFerro",       # 5
                       "CustomSkyrmion"] # 6
-SpinConfig_Type = SpinConfigTypeList[3]
+SpinConfig_Type = SpinConfigTypeList[1]
 SkyrDiameter = 12
 vorticity = 1.0
 helicity = 0.0
@@ -55,7 +55,7 @@ polarity = -1.0
 qx = PI/2.0 ; qy = PI/2.0 # spiral wave vector components
 
 # Skyrmion optimization paramters
-no_Beta = 1000
+no_Beta = 100
 Beta_min = 0.05
 Beta_max = 0.3
 
