@@ -2,4 +2,10 @@
 .DS_Store
 
 # ignore all data files
-*.txt *.dat
+*.txt
+
+# ignore all data files
+*.dat
+
+# ignore pycache
+__pycache__/
