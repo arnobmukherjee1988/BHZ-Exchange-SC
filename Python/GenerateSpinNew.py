@@ -110,11 +110,10 @@ def NeelSkyrmion(Beta):
       Sy[ix][iy] = sin(Theta[ix][iy]) * sin (Phi[ix][iy])
       Sz[ix][iy] = cos(Theta[ix][iy])
         
-  return Sx, Sy, Sz, Theta, Phi
+  return Sx, Sy, Sz
 
 
 def BlochSkyrmion(Beta):
-  
   Theta = np.zeros ((Lx,Ly)) ; Phi = np.zeros ((Lx,Ly))
   Sx = np.zeros ((Lx,Ly)) ; Sy = np.zeros ((Lx,Ly)) ; Sz = np.zeros ((Lx,Ly))
   
@@ -151,11 +150,10 @@ def BlochSkyrmion(Beta):
       Sy[ix][iy] = sin(Theta[ix][iy]) * sin (Phi[ix][iy])
       Sz[ix][iy] = cos(Theta[ix][iy])
 
-  return Sx, Sy, Sz, Theta, Phi
+  return Sx, Sy, Sz
 
 
 def AntiSkyrmion(Beta):
-  
   Theta = np.zeros ((Lx,Ly)) ; Phi = np.zeros ((Lx,Ly))
   Sx = np.zeros ((Lx,Ly)) ; Sy = np.zeros ((Lx,Ly)) ; Sz = np.zeros ((Lx,Ly))
   
@@ -192,19 +190,38 @@ def AntiSkyrmion(Beta):
       Sy[ix][iy] = sin(Theta[ix][iy]) * sin (Phi[ix][iy])
       Sz[ix][iy] = cos(Theta[ix][iy])
       
-  return Sx, Sy, Sz, Theta, Phi
+  return Sx, Sy, Sz
 
 def SpinSpiral():
   Theta = np.zeros ((Lx,Ly)) ; Phi = np.zeros ((Lx,Ly))
   Sx = np.zeros ((Lx,Ly)) ; Sy = np.zeros ((Lx,Ly)) ; Sz = np.zeros ((Lx,Ly))
   for ix in range (Lx):
     for iy in range (Ly):
-      # Theta[ix, iy] = (qx * ix) + (qy * iy) ; Phi[ix, iy] = (qx * ix) + (qy * iy)
+      Theta[ix, iy] = (qx * ix) + (qy * iy) ; Phi[ix, iy] = (qx * ix) + (qy * iy)
+      Sx[ix][iy] = sin(Theta[ix][iy]) * cos (Phi[ix][iy])
+      Sy[ix][iy] = sin(Theta[ix][iy]) * sin (Phi[ix][iy])
+      Sz[ix][iy] = cos(Theta[ix][iy])  
+  return Sx, Sy, Sz
+
+def PRB_109_L041409():
+  Theta = np.zeros ((Lx,Ly)) ; Phi = np.zeros ((Lx,Ly))
+  Sx = np.zeros ((Lx,Ly)) ; Sy = np.zeros ((Lx,Ly)) ; Sz = np.zeros ((Lx,Ly))
+  for ix in range (Lx):
+    for iy in range (Ly):
       Theta[ix, iy] = PI/2.0 ; Phi[ix, iy] = (qx * ix) + (qy * iy)
       Sx[ix][iy] = sin(Theta[ix][iy]) * cos (Phi[ix][iy])
       Sy[ix][iy] = sin(Theta[ix][iy]) * sin (Phi[ix][iy])
       Sz[ix][iy] = cos(Theta[ix][iy])  
-  return Sx, Sy, Sz, Theta, Phi
+  return Sx, Sy, Sz
+
+def PRR_4_013225_SWCB4():
+  Sx = np.zeros ((Lx,Ly)) ; Sy = np.zeros ((Lx,Ly)) ; Sz = np.zeros ((Lx,Ly))
+  for ix in range (Lx):
+    for iy in range (Ly):
+      Sx[ix][iy] = Mx * sin(qx*ix)
+      Sy[ix][iy] = My * sin(qy*iy)
+      Sz[ix][iy] = Mz * (cos(qx*ix) + cos(qx*ix)) + Bz
+  return Sx, Sy, Sz
 
 def Ferro():
   Theta = np.zeros ((Lx,Ly)) ; Phi = np.zeros ((Lx,Ly))
@@ -215,7 +232,7 @@ def Ferro():
       Sx[ix][iy] = sin(Theta[ix][iy]) * cos (Phi[ix][iy])
       Sy[ix][iy] = sin(Theta[ix][iy]) * sin (Phi[ix][iy])
       Sz[ix][iy] = cos(Theta[ix][iy])
-  return Sx, Sy, Sz, Theta, Phi
+  return Sx, Sy, Sz
 
 def AntiFerro():
   Theta = np.zeros ((Lx,Ly)) ; Phi = np.zeros ((Lx,Ly))
@@ -229,7 +246,7 @@ def AntiFerro():
       Sx[ix][iy] = sin(Theta[ix][iy]) * cos (Phi[ix][iy])
       Sy[ix][iy] = sin(Theta[ix][iy]) * sin (Phi[ix][iy])
       Sz[ix][iy] = cos(Theta[ix][iy])
-  return Sx, Sy, Sz, Theta, Phi
+  return Sx, Sy, Sz
 
 
 def CustomSkyrmion(Beta):
@@ -275,7 +292,7 @@ def CustomSkyrmion(Beta):
       Sy[ix][iy] = sin(Theta[ix][iy]) * sin (Phi[ix][iy])
       Sz[ix][iy] = cos(Theta[ix][iy])
           
-  return Sx, Sy, Sz, Theta, Phi
+  return Sx, Sy, Sz
 
 # Function to optimize Skyrmion configuration
 def get_spin():
@@ -284,19 +301,23 @@ def get_spin():
   for i_Beta in range(no_Beta):
     beta_value = Beta_min + ((Beta_max - Beta_min) / no_Beta) * i_Beta
     if SpinConfig_Type == "NeelSkyrmion":
-      Sx, Sy, Sz, Theta, Phi = NeelSkyrmion(beta_value)
+      Sx, Sy, Sz = NeelSkyrmion(beta_value)
     elif SpinConfig_Type == "BlochSkyrmion":
-      Sx, Sy, Sz, Theta, Phi = BlochSkyrmion(beta_value)
+      Sx, Sy, Sz = BlochSkyrmion(beta_value)
     elif SpinConfig_Type == "AntiSkyrmion":
-      Sx, Sy, Sz, Theta, Phi = AntiSkyrmion(beta_value)
+      Sx, Sy, Sz = AntiSkyrmion(beta_value)
     elif SpinConfig_Type == "CustomSkyrmion":
-      Sx, Sy, Sz, Theta, Phi = CustomSkyrmion(beta_value)
+      Sx, Sy, Sz = CustomSkyrmion(beta_value)
     elif SpinConfig_Type == "SpinSpiral":
-      Sx, Sy, Sz, Theta, Phi = SpinSpiral()
+      Sx, Sy, Sz = SpinSpiral()
     elif SpinConfig_Type == "Ferro":
-      Sx, Sy, Sz, Theta, Phi = Ferro()
+      Sx, Sy, Sz = Ferro()
     elif SpinConfig_Type == "AntiFerro":
-      Sx, Sy, Sz, Theta, Phi = AntiFerro()
+      Sx, Sy, Sz = AntiFerro()
+    elif SpinConfig_Type == 'PRR_4_013225_SWCB4':
+      Sx, Sy, Sz = PRR_4_013225_SWCB4()
+    elif SpinConfig_Type == 'PRB_109_L041409':
+      Sx, Sy, Sz = PRB_109_L041409()
     skyr_number = calculate_skyrmion_number(Sx, Sy, Sz)
     # print(i_Beta, beta_value, skyr_number)
     if i_Beta > 0 and np.abs(skyr_number) <= np.abs(prev_skyr_number):
@@ -305,20 +326,24 @@ def get_spin():
     prev_skyr_number = skyr_number
   if beta_critical is not None:
     if SpinConfig_Type == "NeelSkyrmion":
-      Sx, Sy, Sz, Theta, Phi = NeelSkyrmion(beta_critical)
+      Sx, Sy, Sz = NeelSkyrmion(beta_critical)
     elif SpinConfig_Type == "BlochSkyrmion":
-      Sx, Sy, Sz, Theta, Phi = BlochSkyrmion(beta_critical)
+      Sx, Sy, Sz = BlochSkyrmion(beta_critical)
     elif SpinConfig_Type == "AntiSkyrmion":
-      Sx, Sy, Sz, Theta, Phi = AntiSkyrmion(beta_critical)
+      Sx, Sy, Sz = AntiSkyrmion(beta_critical)
     elif SpinConfig_Type == "CustomSkyrmion":
-      Sx, Sy, Sz, Theta, Phi = CustomSkyrmion(beta_critical)
+      Sx, Sy, Sz = CustomSkyrmion(beta_critical)
     elif SpinConfig_Type == "SpinSpiral":
-      Sx, Sy, Sz, Theta, Phi = SpinSpiral()
+      Sx, Sy, Sz = SpinSpiral()
     elif SpinConfig_Type == "Ferro":
-      Sx, Sy, Sz, Theta, Phi = Ferro()
+      Sx, Sy, Sz = Ferro()
     elif SpinConfig_Type == "AntiFerro":
-      Sx, Sy, Sz, Theta, Phi = AntiFerro()
-    return Sx, Sy, Sz, Theta, Phi, beta_critical
+      Sx, Sy, Sz = AntiFerro()
+    elif SpinConfig_Type == 'PRR_4_013225_SWCB4':
+      Sx, Sy, Sz = PRR_4_013225_SWCB4()
+    elif SpinConfig_Type == 'PRB_109_L041409':
+      Sx, Sy, Sz = PRB_109_L041409()
+    return Sx, Sy, Sz, beta_critical
   else:
     # Handle the case when beta_critical is not found
     return None

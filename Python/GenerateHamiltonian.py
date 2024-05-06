@@ -317,28 +317,28 @@ def nambu_hamiltonian(Sx, Sy, Sz):
   for iy in range (Ly):
     for ix in range (Lx):
         i = iy * Lx + ix
-        for c in range (SDOF*PHDOF):
-          for r in range (SDOF*PHDOF):
+        for c in range (TDOF):
+          for r in range (TDOF):
             # hopping along x
             if J11[i] >= 0 and J11[i] != i:
               j1 = J11[i]
-              row = SDOF*PHDOF*i + r ; col = SDOF*PHDOF*j1 + c
+              row = TDOF*i + r ; col = TDOF*j1 + c
               H[row,col] = (tx * Gamma1[r,c])
               H[col,row] = conj(H[row,col])
             # hopping along y
             if J22[i] >= 0 and J22[i] != i:
               j2 = J22[i]
-              row = SDOF*PHDOF*i + r ; col = SDOF*PHDOF*j2 + c
+              row = TDOF*i + r ; col = TDOF*j2 + c
               H[row,col] = (ty * Gamma1[r,c])
               H[col,row] = conj(H[row,col])
             # hopping along diagonal
             if J33[i] >= 0 and J33[i] != i:
               j3 = J33[i]
-              row = SDOF*PHDOF*i + r ; col = SDOF*PHDOF*j3 + c
+              row = TDOF*i + r ; col = TDOF*j3 + c
               H[row,col] = (td * Gamma1[r,c])
               H[col,row] = conj(H[row,col])
             # onsite terms, Chemical potential, s-Wave SC, exchange J_Hund
-            row = SDOF*PHDOF*i + r ; col = SDOF*PHDOF*i + c
+            row = TDOF*i + r ; col = TDOF*i + c
             H[row,col] = ((mu * Gamma1[r,c]) +
                           (Delta_s * Gamma2[r,c]) + 
                           (J_Hundx * Sx[ix, iy] * Gamma3[r,c] + 
@@ -358,9 +358,9 @@ def Bott_Index (Z):
   for iy in range (Ly):
     for ix in range (Lx):
       i = iy * Lx + ix
-      for c in range (SDOF*PHDOF):
-        for r in range (SDOF*PHDOF):
-          row = SDOF*PHDOF*i + r ; col = SDOF*PHDOF*i + c
+      for c in range (TDOF):
+        for r in range (TDOF):
+          row = TDOF*i + r ; col = TDOF*i + c
           Eth[row,col] = exp ( iota*(2.0*PI/Lx)*ix ) * IdnttyMat[r,c]
           Eph[row,col] = exp ( iota*(2.0*PI/Ly)*iy ) * IdnttyMat[r,c]
   
@@ -398,8 +398,8 @@ def BHZ_hamiltonian(Sx, Sy, Sz):
   # Initialize arrays
   H = np.zeros((n, n), dtype=np.complex128)
   # setting up lattice geometry
-  # J11, J22 = neighbor_array_square_lattice()
-  J11, J22, J33 = neighbor_array_triangular_lattice()  
+  J11, J22 = neighbor_array_square_lattice()
+  # J11, J22, J33 = neighbor_array_triangular_lattice()  
   # Pauli matrices for orbital degrees of freedom
   sigma_x = np.array([[0, 1], [1, 0]])
   sigma_y = np.array([[0, -1j], [1j, 0]])
@@ -419,8 +419,8 @@ def BHZ_hamiltonian(Sx, Sy, Sz):
   Gamma1 = np.kron(tau_z, np.kron(sigma_z, s_0))
   Gamma2 = np.kron(tau_x, np.kron(sigma_0, s_0))
   Gamma3 = np.kron(tau_0, np.kron(sigma_0, s_x))
-  Gamma4 = np.kron(tau_0, np.kron(sigma_0, s_z))
-  Gamma5 = np.kron(tau_0, np.kron(sigma_0, s_y))
+  Gamma4 = np.kron(tau_0, np.kron(sigma_0, s_y))
+  Gamma5 = np.kron(tau_0, np.kron(sigma_0, s_z))
   Gamma6 = np.kron(tau_z, np.kron(sigma_x, s_z))
   Gamma7 = np.kron(tau_z, np.kron(sigma_y, s_0))
   Gamma8 = np.kron(tau_z, np.kron(sigma_x, s_x))
@@ -434,35 +434,35 @@ def BHZ_hamiltonian(Sx, Sy, Sz):
   for iy in range (Ly):
     for ix in range (Lx):
       i = iy * Lx + ix
-      for c in range (SDOF*PHDOF):
-        for r in range (SDOF*PHDOF):
+      for c in range (TDOF):
+        for r in range (TDOF):
           # hopping along x
           if J11[i] >= 0 and J11[i] != i:
             j1 = J11[i]
-            row = SDOF*PHDOF*i + r ; col = SDOF*PHDOF*j1 + c
-            H[row,col] = ( -0.5 * tx * Gamma1[r,c] -
-                            1j * 0.5 * Lambda_SOC_x * Gamma6[r,c] + 
-                            0.5 * Lambda_WD_x * Gamma8[r,c] )
+            row = TDOF*i + r ; col = TDOF*j1 + c
+            H[row,col] = ( - tx * Gamma1[r,c]
+                           - 1j * Lambda_SOC_x * Gamma6[r,c]
+                           + Lambda_WD_x * Gamma8[r,c])
             H[col,row] = conj(H[row,col])
           # hopping along y
           if J22[i] >= 0 and J22[i] != i:
             j2 = J22[i]
-            row = SDOF*PHDOF*i + r ; col = SDOF*PHDOF*j2 + c
-            H[row,col] = ( -0.5 * ty * Gamma1[r,c] -
-                            1j * 0.5 * Lambda_SOC_y * Gamma7[r,c] -
-                            0.5 * Lambda_WD_y * Gamma8[r,c] )
+            row = TDOF*i + r ; col = TDOF*j2 + c
+            H[row,col] = ( - ty * Gamma1[r,c]
+                           - 1j * Lambda_SOC_y * Gamma7[r,c]
+                           - Lambda_WD_y * Gamma8[r,c])
             H[col,row] = conj(H[row,col])
           # hopping along diagonal
-          if J33[i] >= 0 and J33[i] != i:
-            j3 = J33[i]
-            row = SDOF*PHDOF*i + r ; col = SDOF*PHDOF*j3 + c
-            H[row,col] = ( -0.5 * td * Gamma1[r,c] -
-                            1j * 0.5 * Lambda_SOC_d * Gamma4[r,c] -
-                            0.5 * Lambda_WD_d * Gamma3[r,c] )
-            H[col,row] = conj(H[row,col])
+          # if J33[i] >= 0 and J33[i] != i:
+          #   j3 = J33[i]
+          #   row = TDOF*i + r ; col = TDOF*j3 + c
+          #   H[row,col] = ( -0.5 * td * Gamma1[r,c] -
+          #                   1j * 0.5 * Lambda_SOC_d * Gamma4[r,c] -
+          #                   0.5 * Lambda_WD_d * Gamma3[r,c] )
+          #   H[col,row] = conj(H[row,col])
           # onsite terms, Chemical potential, s-Wave SC, exchange J_Hund
-          row = SDOF*PHDOF*i + r ; col = SDOF*PHDOF*i + c
-          H[row,col] = (m0 * Gamma1[r,c] + 
+          row = TDOF*i + r ; col = TDOF*i + c
+          H[row,col] = (epsilon0 * Gamma1[r,c] + 
                         Delta_s * Gamma2[r,c] + 
                         (J_Hundx * Sx[ix, iy] * Gamma3[r,c] + 
                          J_Hundy * Sy[ix, iy] * Gamma4[r,c] + 
@@ -472,7 +472,7 @@ def BHZ_hamiltonian(Sx, Sy, Sz):
   return H
   
 def QuadrupoleMoment (Z):
-  Idntty = np.identity(SDOF*PHDOF)
+  Idntty = np.identity(TDOF)
   
   U = np.zeros ((n, int(n/2)), dtype=complex)
   for j in range (int(n/2)):
@@ -483,12 +483,13 @@ def QuadrupoleMoment (Z):
   for iy in range (Ly):
     for ix in range (Lx):
       i = iy * Lx + ix
-      for c in range (SDOF*PHDOF):
-        for r in range (SDOF*PHDOF):
-          row = SDOF*PHDOF*i + r ; col = SDOF*PHDOF*i + c
+      for c in range (TDOF):
+        for r in range (TDOF):
+          row = TDOF*i + r ; col = TDOF*i + c
           q[row, col] = (ix*iy*Idntty[r,c])/Nsites
             
   W = expm(1j*2.0*PI*q)
+      
   V = np.dot(conj(U).T, np.dot(W, U))
   c1 = sp.linalg.det(V)
   c2 = exp(-1j*PI*np.trace(q))

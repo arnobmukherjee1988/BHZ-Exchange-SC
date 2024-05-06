@@ -1,7 +1,7 @@
 from utils import *
 
 # Lattice Type and lattice parameters
-Lx = 60 ; Ly = 60
+Lx = 20 ; Ly = 20
 Nsites = Lx * Ly
 BoundaryConditionList = ['PBCx + PBCy',
                          'OBCx + PBCy',
@@ -12,50 +12,45 @@ BraviasLattice = "SquareLattice"
 
 # Hamiltonian coupling parameters
 # hopping parameters
-tx = 1.0 ; ty = 1.0 ; td = 1.0
+tx = 1.0 ; ty = 1.0 ; td = 0.0
 # superconducting order parameters
-Delta_s = 1.0
+Delta_s = 0.4
 Delta_px = 0.0 ; Delta_py = 0.0
 Delta_dx = 0.0 ; Delta_dy = 0.0
 # Hunds coupling parameters
-J_Hundx = 2.0 ; J_Hundy = 2.0 ; J_Hundz = 2.0
-# chemical potential
-mu = 1.0
-# the crystal field splitting
-m0 = 1.0
+J_Hundx = 0.8 ; J_Hundy = 0.8 ; J_Hundz = 0.8
+# chemical potential & crystal field splitting
+mu = 0.0 ; epsilon0 = 1.0
 # the SOC strength
-Lambda_SOC_x = 1.0
-Lambda_SOC_y = 1.0
-Lambda_SOC_d = 0.0
-# the WD mass term
-Lambda_WD_x = 1.0
-Lambda_WD_y = 1.0
-Lambda_WD_d = 0.0
+Lambda_SOC_x = 0.5 ; Lambda_SOC_y = 0.5 ; Lambda_SOC_d = 0.0
+Lambda_WD_x = 0.0 ; Lambda_WD_y = 0.0
 
 # Hamiltonian size parameters
 # degrees of freedom, spin (SDOF), particle-hole (PHDOF), orbital (ODOF)
-SDOF = 2 ; ODOF = 1 ; PHDOF = 2
+SDOF = 2 ; ODOF = 2 ; PHDOF = 2 ; TDOF = PHDOF * ODOF * SDOF
 PHFactor = 1.0 if PHDOF == 2 else 1.0
-n = Nsites * ODOF * SDOF * PHDOF
+n = Nsites * TDOF
 
 # Spin Configuration Parameters
-SpinConfigTypeList = ["NeelSkyrmion",    # 0
-                      "BlochSkyrmion",   # 1
-                      "AntiSkyrmion",    # 2
-                      "SpinSpiral",      # 3
-                      "Ferro",           # 4
-                      "AntiFerro",       # 5
-                      "CustomSkyrmion"] # 6
-SpinConfig_Type = SpinConfigTypeList[1]
-SkyrDiameter = 12
+SpinConfigTypeList = ["NeelSkyrmion",      # 0
+                      "BlochSkyrmion",     # 1
+                      "AntiSkyrmion",      # 2
+                      "SpinSpiral",        # 3
+                      "Ferro",             # 4
+                      "AntiFerro",         # 5
+                      "CustomSkyrmion",    # 6
+                      "PRB_109_L041409",   # 7
+                      "PRR_4_013225_SWCB4"] # 8
+SpinConfig_Type = SpinConfigTypeList[7]
+SkyrDiameter = 20
 vorticity = 1.0
 helicity = 0.0
 polarity = -1.0
 
-qx = PI/2.0 ; qy = PI/2.0 # spiral wave vector components
-
+qx = PI/5.0 ; qy = PI/5.0 # spiral wave vector components
+Mx = 1.0 ; My = 1.0 ; Mz = 1.0 ; Bz = 0.5
 # Skyrmion optimization paramters
-no_Beta = 100
+no_Beta = 1000
 Beta_min = 0.05
 Beta_max = 0.3
 
@@ -64,15 +59,15 @@ offset = 0.00001
 
 BC_Error = 'Invalid BoundaryCondition! You have entered ' + BoundaryCondition + '\n' + 'Valid options are: PBCx + PBCy, OBCx + PBCy, PBCx + OBCy, OBCx + OBCy'
 line1 = 'Invalid SpinConfig_Type! You have entered ' + SpinConfig_Type + '\n'
-line2 = 'Valid options are: "NeelSkyrmion", "BlochSkyrmion", "AntiSkyrmion", "SpinSpiral", "Ferro", "AntiFerro"'
-SpinConfig_Error = line1 + line2
+# line2 = 'Valid options are: "NeelSkyrmion", "BlochSkyrmion", "AntiSkyrmion", "SpinSpiral", "Ferro", "AntiFerro"'
+SpinConfig_Error = line1
 
 def print_parameters(print_info=True):
   if not print_info:
     return
-  print("-" * 78)
-  
-  print("\nParameters:")
+  print("-" * 88)
+  print("-" * 88)
+  print("Parameters:")
   print(f"  Bravais Lattice: {BraviasLattice}")
   print(f"  Lattice Size: Lx = {Lx}, Ly = {Ly}")
   # print(f"  Number of Sites: {Nsites}")
@@ -94,13 +89,5 @@ def print_parameters(print_info=True):
     print(f"  Number of Skyrmions Along X, Y: {int(Lx/SkyrDiameter)}, {int(Ly/SkyrDiameter)}")
     print(f"  Total Skyrmions = {int(Lx/SkyrDiameter) * int(Ly/SkyrDiameter)}")
 
-  
-  print("-" * 78)
-
-
-
-'''
-Put errors for wrong boundary condition and spin config type
-Fix the if conditions for 'Create_SpinConfig' in the GenerateSpinConfig file 
-
-'''
+  print("-" * 88)
+  print("-" * 88)
