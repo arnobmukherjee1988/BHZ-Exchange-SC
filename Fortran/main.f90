@@ -11,11 +11,11 @@ PROGRAM topoSC
   USE gen_coordinate
   IMPLICIT NONE
 
-  INTEGER :: ix, iy
+  INTEGER :: ix, iy, i, j
   REAL, DIMENSION(lx,ly) :: Sx, Sy, Sz, Theta, Phi
   REAL :: skyr_number
-  COMPLEX :: H (n,n), Z (n,n)
-  REAL :: W(n)
+  COMPLEX :: H (n,n), Z (n,n), eigenvec(n,n)
+  REAL :: W(n), trash
 
   COMPLEX :: qxy
 
@@ -43,14 +43,22 @@ PROGRAM topoSC
   ! Ev_Yes (Ev_No) ---> to calculate (not calculate) the eigenvectors
   CALL BHZ_Jex_sSC (Sx, Sy, Sz, H)
   ! CALL BHZ_hamiltonian (H)
-  CALL diagonalization (n, H, 'Ev_Yes', W, Z)
+  CALL Diagonalize_Hermitian (n, H, 'Ev_Yes', W, Z)
 
   ! printing total eigen spectrum
   CALL print_eigenvals (n, W, TRIM(ADJUSTL(filename_eigenval)))
 
+  OPEN (151, FILE='eigenvec.dat', STATUS='old')
+  DO j = 1, n
+    DO i = 1, n
+      READ (151, *) eigenvec(i,j)
+    ENDDO
+  ENDDO
+  CLOSE (UNIT=151)
+
   ! Quadrupole Moment calculation for topological characterization
-  ! CALL QuadrupoleMoment (Z, qxy)
-  ! print*, qxy
+  CALL QuadrupoleMoment1 (eigenvec, qxy)
+  print*, qxy
 
   ! calculating and printing total DOS data
   ! CALL dos_cal (W, TRIM(ADJUSTL(filename_dos)))

@@ -1,6 +1,9 @@
 import numpy as np
 import scipy as sp
 from scipy.linalg import expm
+import time
+from typing import Optional, Tuple
+from numba import jit
 import math
 import pprint
 import inspect
@@ -14,7 +17,7 @@ from matplotlib import rc
 plt.style.use("seaborn-v0_8-paper")
 rc('axes', edgecolor='k')
 
-# ### Defining aliases for different mathematical fucntions
+# Defining aliases for different mathematical fucntions
 atan = np.arctan
 sin = np.sin
 cos = np.cos
@@ -25,80 +28,82 @@ Im = np.imag
 PI = np.pi
 iota = complex(0.0, 1.0)
 conj = np.conj
-PauliX = np.array([[0, 1], [1, 0]])
-PauliY = np.array([[0, -1j], [1j, 0]])
-PauliZ = np.array([[1, 0], [0, -1]])
+PauliX = np.array([[0, 1], [1, 0]], dtype=np.float32)
+PauliY = np.array([[0, -1j], [1j, 0]], dtype=np.complex64)
+PauliZ = np.array([[1, 0], [0, -1]], dtype=np.float32)
 
-# ### Defining various generic functions
 # function for easy matrix print
-def PrintMatrix (matrix):
-  # Loop over each row
+def PrintMatrix(matrix: np.ndarray):
   for i in range(matrix.shape[0]):
-    # Loop over each column in the current row
     for j in range(matrix.shape[1]):
-      # Print element at row i, column j
       print(f"{i:<6} {j:<10} [{i}][{j}]: {matrix[i][j]:<4}")
-      # print(f"i: {i:<2}, j: {j:<2}, matrix[{i}][{j}]: {matrix[i][j]:<4}")
 
 # function to calculate distance between two 2-D points
-def Distance (x1, y1, x2, y2):
-  val = np.sqrt ( (x2-x1)**2 + (y2-y1)**2 )
-  return val
+def Distance(x1: float, y1: float, x2: float, y2: float) -> float:
+  return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
-# Kronecker delta function.
-def delta(i, j):
+# Kronecker delta function
+def delta(i: int, j: int) -> int:
   return 1 if i == j else 0
-
+  
 # Theta function
-def ThetaFunc(x):
-  if (x>0.0):
-      val=1.0
-  else:
-      val=0.0
-  return val
+def ThetaFunc(x: float) -> float:
+  return 1.0 if x > 0.0 else 0.0
 
-def save_matrices_to_file(datafile, *data):
+# function for save matrices in datafile
+def save_matrices_to_file(datafile: str, *data: np.ndarray):
   if not data:
     raise ValueError("At least one array or matrix must be provided.")
 
-  # Determine if the data is 1D or 2D
-  if isinstance(data[0], np.ndarray) and data[0].ndim == 1:
-    NumElements = len(data[0])
+  with open(datafile, "w") as file:
+    if data[0].ndim == 1:
+      NumElements = len(data[0])
+      file.write("#\t\t{:<6}\t".format("i"))
 
-    with open(datafile, "w") as file:
-      # Print headers
-      file.write("#\t\t{:<6}\t{:<6}\t".format("i", "Value"))
+      for matrix in data:
+        matrix_name = next(name for name, obj in inspect.currentframe().f_back.f_locals.items() if obj is matrix)
+        file.write("{:<15}\t".format(matrix_name))
       file.write("\n")
 
-      # Iterate through array and print values
       for i in range(NumElements):
-        line = "\t\t{:<6}\t{:<15.6f}\t".format(i+1, float(data[0][i]))
+        line = "\t\t{:<6}\t".format(i + 1)
+        for k in range(len(data)):
+            line += "{:<15.6f}\t".format(data[k][i])
         line += "\n"
         file.write(line)
-  elif isinstance(data[0], np.ndarray) and data[0].ndim == 2:
-    NumRow, NumColumn = data[0].shape
 
-    with open(datafile, "w") as file:
-      # Print headers
+    elif data[0].ndim == 2:
+      NumRow, NumColumn = data[0].shape
       file.write("#\t\t{:<6}\t{:<6}\t{:<6}\t".format("i", "j", "Site"))
-
-      # Print matrix names based on variable names
       for matrix in data:
-        matrix_name = [name for name, obj in inspect.currentframe().f_back.f_locals.items() if obj is matrix][0]
+        matrix_name = next(name for name, obj in inspect.currentframe().f_back.f_locals.items() if obj is matrix)
         file.write("{:<15}\t".format(matrix_name))
-
       file.write("\n")
 
-      # Iterate through matrices and print values
       for i in range(NumRow):
         for j in range(NumColumn):
-          line = "\t\t{:<6}\t{:<6}\t{:<6}\t".format(i+1, j+1, (i*NumRow+j)+1)
-
-          # Print values for each matrix
+          line = "\t\t{:<6}\t{:<6}\t{:<6}\t".format(i + 1, j + 1, (i * NumRow + j) + 1)
           for k in range(len(data)):
             line += "{:<15.6f}\t".format(data[k][i][j])
-
           line += "\n"
           file.write(line)
-  else:
-    raise ValueError("Input must be a 1D or 2D NumPy array.")
+        file.write("\n")
+    else:
+        raise ValueError("Input must be a 1D or 2D NumPy array.")
+
+# Lorentzian function
+@jit(nopython=True)
+def Lorentzian(BroadFac: float, x: float) -> float:
+  return (1.0 / PI) * (BroadFac / (BroadFac ** 2 + x ** 2))
+
+# Function to log the runtime to a file with formatted time
+def log_runtime(message: str, duration: float):
+  def format_time(duration: float) -> str:
+    days, remainder = divmod(duration, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    return f"{int(days):02d}-{int(hours):02d}:{int(minutes):02d}:{seconds:.6f}"
+
+  formatted_duration = format_time(duration)
+  with open("runtimes.log", "a") as file:
+    file.write(f"{message}: {formatted_duration}\n")

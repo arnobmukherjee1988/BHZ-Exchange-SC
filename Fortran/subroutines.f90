@@ -47,7 +47,7 @@ SUBROUTINE print_SpinVectors (NumRow, NumCol, Sx, Sy, Sz, Theta, Phi, filename)
   ENDDO
 END SUBROUTINE print_SpinVectors
 
-SUBROUTINE diagonalization (size, H, CalEV, W, Z)
+SUBROUTINE Diagonalize_Hermitian (size, H, CalEV, W, Z)
   USE input_parameters
   IMPLICIT NONE
 
@@ -76,9 +76,60 @@ SUBROUTINE diagonalization (size, H, CalEV, W, Z)
   ELSE
     print*, "Diagonalization error: Put 'Ev_Yes' or 'Ev_No' for calculating or not of eigenvectors"
   ENDIF
-  END SUBROUTINE diagonalization
 
-  FUNCTION fermi (x)
+END SUBROUTINE Diagonalize_Hermitian
+
+SUBROUTINE Diagonalize_NonHermitian (size, M, W)
+  USE input_parameters
+  IMPLICIT NONE
+
+  INTEGER, INTENT(IN) :: size
+  COMPLEX, INTENT(IN) :: M (size, size)
+  REAL, INTENT(OUT) :: W(size)
+  
+  ! variable declarations for use in CGEES (LAPACK subroutine)
+  CHARACTER (LEN=1) :: JOBVS, SORT
+  INTEGER :: LWORK, INFO, SDIM, LDVS
+  INTEGER :: IFAIL(size/2), LDZ, label, LDA
+  COMPLEX :: WORK(size), VS(1,size)
+  REAL :: RWORK(size)
+  LOGICAL :: BWORK(n), SELECT
+
+  JOBVS='N' ; SORT = 'N' ; LDVS = 1 ;  LWORK = 2*size
+  LDA = size ; LDZ = size
+  
+  CALL CGEES (JOBVS, SORT, SELECT, size, M, LDA, SDIM, W, VS, LDVS, WORK, LWORK, RWORK, BWORK, INFO)
+
+END SUBROUTINE Diagonalize_NonHermitian
+
+SUBROUTINE calculate_determinant(size, matrix, det)
+  IMPLICIT NONE
+  INTEGER, INTENT (IN) :: size
+  COMPLEX, INTENT(IN) :: matrix(size, size)
+  COMPLEX, INTENT(OUT) :: det
+  INTEGER :: i, ipiv(size), info
+  REAL :: rwork(size)
+  COMPLEX :: lu(size, size)
+  
+  lu = matrix  ! Copy the matrix
+  
+  ! LU factorization
+  CALL zgetrf(size, size, lu, size, ipiv, info)
+  IF (info /= 0) THEN
+      print *, "Error: LU factorization failed"
+      STOP
+  ENDIF
+  
+  ! Calculate the determinant from the LU factorization
+  det = cmplx(1.0, 0.0)
+  DO i = 1, size
+    det = det * lu(i,i)
+  ENDDO
+  
+END SUBROUTINE calculate_determinant
+
+
+FUNCTION fermi (x)
   USE input_parameters
   IMPLICIT NONE
   REAL, INTENT(IN) :: x

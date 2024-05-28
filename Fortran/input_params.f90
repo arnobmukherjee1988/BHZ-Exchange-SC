@@ -2,7 +2,7 @@ MODULE input_parameters
   IMPLICIT NONE
 
   ! Lattice Type and lattice parameters
-  INTEGER, PARAMETER :: Lx = 20 , Ly = 20
+  INTEGER, PARAMETER :: Lx = 10 , Ly = 10
   INTEGER, PARAMETER :: Nsites = Lx * Ly
   CHARACTER(LEN=12), PARAMETER :: BoundaryConditionList(4) = ['PBCx + PBCy', 'OBCx + PBCy', 'PBCx + OBCy', 'OBCx + OBCy']
   CHARACTER(LEN=12), PARAMETER :: BoundaryCondition = BoundaryConditionList(4)

@@ -19,7 +19,7 @@ nice_fonts = {
 mpl.rcParams.update(nice_fonts)
 
 
-def visualize_matrices(matrices, titles, multiplot=False, cmap='gnuplot', norm=None, aspect='auto', interpolation='none', vmin=None, vmax=None, extent=None):
+def visualize_matrices(matrices, titles, multiplot=False, cmap='gnuplot', norm=None, aspect='auto', interpolation='none', vmin=None, vmax=None, extent=None, SaveAs=None):
     """
     Visualizes matrices with optional customization for single or multiplot.
 
@@ -59,14 +59,20 @@ def visualize_matrices(matrices, titles, multiplot=False, cmap='gnuplot', norm=N
             cbar = plt.colorbar(axes[i].images[0], cax=cax)
 
         plt.tight_layout()  # Adjust layout to prevent overlapping
-        plt.show()
+        if SaveAs == 'None':
+          plt.show()
+        else:
+          plt.savefig(SaveAs, bbox_inches='tight')
     else:
         for matrix, title in zip(matrices, titles):
-            plt.figure()
-            plt.imshow(matrix.real, cmap=cmap, norm=norm, aspect=aspect, interpolation=interpolation, vmin=vmin, vmax=vmax, extent=extent)
-            plt.title(title)
-            plt.colorbar()
+          plt.figure()
+          plt.imshow(matrix.real, cmap=cmap, norm=norm, aspect=aspect, interpolation=interpolation, vmin=vmin, vmax=vmax, extent=extent)
+          plt.title(title)
+          plt.colorbar()
+          if SaveAs == 'None':
             plt.show()
+          else:
+            plt.savefig(SaveAs, bbox_inches='tight')
 
 
 

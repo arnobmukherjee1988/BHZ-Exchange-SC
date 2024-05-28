@@ -1,27 +1,17 @@
-SUBROUTINE dos_cal (E, filename)    !sys_size=system size(n*pi), n=energy dimension
-  USE input_parameters
-  IMPLICIT NONE
+from config import *
+from utils import *
 
-  REAL, INTENT(IN) :: E(n)
-  CHARACTER(LEN=*), INTENT(IN) :: filename
-  REAL :: dos, Energy, E_min, E_max
-  INTEGER :: i, j
+def dos_cal(EigenVals: np.ndarray) -> (np.ndarray, np.ndarray):
+  Energy = np.linspace(np.min(EigenVals) - 1.0, np.max(EigenVals) + 1.0, DOS_NE, dtype=np.float32)
+  dos = np.zeros(DOS_NE, dtype=np.float32)
 
-  OPEN (UNIT = 2, FILE = TRIM(ADJUSTL(filename)), STATUS = 'unknown')
-  E_min = E(1) - 1.0
-  E_max = E(n) + 1.0
-  DO i = 0, DOS_NE
-    dos = 0.0
-    Energy = ((E_max - E_min)/DOS_NE) * i + E_min
-    DO j = 1, n
-      dos = dos + (1.0/(pi*n)) * ( eta/((Energy-E(j))**2 + eta**2) )
-    ENDDO
-    WRITE(2,*) Energy, dos
-  ENDDO
+  for i in range(DOS_NE):
+    diff = Energy[i] - EigenVals
+    dos[i] = np.sum((1.0 / (PI * n)) * (eta / (diff**2 + eta**2)))
 
-END SUBROUTINE dos_cal
+  return Energy, dos
 
-
+'''
 ! SUBROUTINE LDOS_ForAllSites_AtFixedEnergy(E, W, Z, ldos, filename)
 !   USE input_parameters
 !   IMPLICIT NONE
@@ -57,47 +47,31 @@ END SUBROUTINE dos_cal
 !   ENDDO 
 
 ! END SUBROUTINE LDOS_ForAllSites_AtFixedEnergy
+'''
+
+
+@jit(nopython=True)
+def LDOS_ForAllSites_AtFixedEnergy(E: float, W: np.ndarray, Z: np.ndarray) -> np.ndarray:
+  ldos = np.zeros((Lx, Ly), dtype=np.float32)
+
+  for k in range(n):
+    lorentzian_val = Lorentzian(eta, E - W[k])
+    for iy in range(Ly):
+      for ix in range(Lx):
+        i = iy * Lx + ix
+        for c in range(TDOF):
+          for r in range(TDOF):
+            row = TDOF * i + r
+            col = TDOF * i + c
+            ldos[ix, iy] += lorentzian_val * abs(Z[row, k] * conj(Z[col, k]))
+
+  # Normalize ldos
+  ldos /= np.max(ldos)
+  return ldos
 
 
 
-SUBROUTINE LDOS_ForAllSites_AtFixedEnergy(E, W, Z, ldos, filename)
-  USE input_parameters
-  IMPLICIT NONE
-
-  REAL, INTENT(IN) :: E, W(n)
-  COMPLEX, INTENT(IN) :: Z(n, n)
-  REAL, INTENT(OUT) :: ldos(lx, ly)
-  CHARACTER (LEN=*), INTENT(IN) :: filename
-  INTEGER :: i, ix, iy, k, r, c, row, col
-  CHARACTER (LEN=20) :: strE
-  REAL :: Lorentzian
-
-  WRITE (strE,'(F10.4)') E
-  OPEN (UNIT = 3, FILE = 'E_'//TRIM(ADJUSTL(strE))//'_'//TRIM(ADJUSTL(filename)), STATUS = 'unknown') 
-  ldos(:,:) = 0.0
-  DO k = 1, n
-    DO iy = 1, Ly
-      DO ix = 1, Lx
-        i = (iy-1) * Lx + ix
-        DO c = 1, TDOF
-          DO r = 1, TDOF
-            row = TDOF*(i-1) + r ; col = TDOF*(i-1) + c
-            ldos(ix,iy) = ldos(ix,iy) + Lorentzian(eta, E-W(k)) * ABS( Z(row,k) * CONJG(Z(col,k)) )
-          ENDDO
-        ENDDO
-      ENDDO
-    ENDDO
-  ENDDO
-
-  DO iy = 1, ly
-    DO ix = 1, lx
-      WRITE(3,*) ix, iy, ldos(ix, iy)/ MAXVAL(ldos)
-    ENDDO
-    WRITE(3,*)
-  ENDDO 
-
-END SUBROUTINE LDOS_ForAllSites_AtFixedEnergy
-
+'''
 ! SUBROUTINE LDOS_ForAllEnergies_AtFixedSite(site, EnergyMin, EnergyMax, W, Z, ldos, filename)
 !   USE input_parameters
 !   USE gen_coordinate
@@ -425,3 +399,75 @@ SUBROUTINE QuadrupoleMoment1 (Z, qxy)
   qxy = (1.0/(2.0*PI)) * CLOG (c1*c2)
 
 END SUBROUTINE QuadrupoleMoment1
+'''
+
+def QuadrupoleMoment (Z: np.ndarray) -> float:
+  Idntty = np.identity(TDOF)
+  
+  U = np.zeros ((n, int(n/2)), dtype=complex)
+  for j in range (int(n/2)):
+    for i in range (n):
+      U[i,j] = Z[i,j]
+  
+  q = np.zeros ((n, n), dtype=complex)
+  for iy in range (Ly):
+    for ix in range (Lx):
+      i = iy * Lx + ix
+      for c in range (TDOF):
+        for r in range (TDOF):
+          row = TDOF*i + r ; col = TDOF*i + c
+          q[row, col] = (ix*iy*Idntty[r,c])/Nsites
+            
+  W = expm(1j*2.0*PI*q)
+      
+  V = np.dot(conj(U).T, np.dot(W, U))
+  c1 = sp.linalg.det(V)
+  c2 = exp(-1j*PI*np.trace(q))
+  qxy = (1.0/(2.0*PI))*(ln(c1*c2))
+
+  return Im(qxy)
+
+
+def Bott_Index (Z):
+  Eth = np.zeros((n, n), dtype=complex)
+  Eph = np.zeros((n, n), dtype=complex)
+  IdnttyMat = np.identity(4)
+  
+  # lattice coordinate projection onto spherical torus
+  for iy in range (Ly):
+    for ix in range (Lx):
+      i = iy * Lx + ix
+      for c in range (SDOF*PHDOF):
+        for r in range (SDOF*PHDOF):
+          row = SDOF*PHDOF*i + r ; col = SDOF*PHDOF*i + c
+          Eth[row,col] = exp ( iota*(2.0*PI/Lx)*ix ) * IdnttyMat[r,c]
+          Eph[row,col] = exp ( iota*(2.0*PI/Ly)*iy ) * IdnttyMat[r,c]
+  
+  # define projector
+  Prj = np.zeros ((n,n), dtype=complex)  
+  # for k in range (n//2):
+  #   for i in range(n):
+  #     for j in range(n):
+  #       Prj[i, j] += Z[i, k] * conj(Z[j, k])
+  
+  # for k in range(n//2):
+  #   # Select the k-th column and its conjugate transpose
+  #   Z_k = Z[:, k]
+  #   Z_k_conj = np.conj(Z_k)
+    # Compute outer product and accumulate
+    # Prj += np.outer(Z_k, Z_k_conj)
+  Prj = np.dot(Z[:, :n//2], np.conj(Z[:, :n//2].T))
+  
+  # define position projected operators      
+  U = np.dot (Prj, np.dot(Eth,Prj))
+  V = np.dot (Prj, np.dot(Eph,Prj))
+  
+  # singular value decomposition of UMatrix and VMatrix
+  
+  # Bott matrix(W), VUV^{\dagger}U^{\dagger}
+  W = np.dot(V, np.dot(U, np.dot(conj(V.T), conj(U.T))))
+  
+  # Compute the expression (1 / (2 * np.pi)) * Im[tr[log W]]
+  BottIndex = (1 / (2.0 * PI)) * np.imag(np.trace(np.log(W)))
+  
+  return BottIndex

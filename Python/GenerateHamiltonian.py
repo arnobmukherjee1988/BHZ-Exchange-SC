@@ -2,40 +2,33 @@ from config import *
 from utils import *
 
 # Function to get nearest neighbor arrays
-def neighbor_array_square_lattice():
-  J1_arr = np.empty(Lx * Ly, dtype=int)
-  J2_arr = np.empty(Lx * Ly, dtype=int)
+# @jit(nopython=True)
+def neighbor_array_square_lattice() -> Tuple[np.ndarray, np.ndarray]:
+  J1_arr: np.ndarray = np.empty(Lx * Ly, dtype=int)
+  J2_arr: np.ndarray = np.empty(Lx * Ly, dtype=int)
   for iy in range(Ly):
     for ix in range(Lx):
-      i = (iy * Lx) + ix
+      i: int = (iy * Lx) + ix
       if BoundaryCondition == 'PBCx + PBCy':
-        jx = ix + 1 if ix + 1 < Lx else 0
-        jy = iy + 1 if iy + 1 < Ly else 0
+        jx: int = (ix + 1) % Lx
+        jy: int = (iy + 1) % Ly
         J1_arr[i] = (iy * Lx) + jx
         J2_arr[i] = (jy * Lx) + ix
       elif BoundaryCondition == 'OBCx + PBCy':
-        jx = ix + 1 if ix + 1 < Lx else 0
-        jy = iy + 1 if iy + 1 < Ly else 0
+        jx: int = ix + 1 if ix + 1 < Lx else -i
+        jy: int = (iy + 1) % Ly
         J1_arr[i] = (iy * Lx) + jx
         J2_arr[i] = (jy * Lx) + ix
-        if ix == Lx - 1:
-          J1_arr[i] = -i
       elif BoundaryCondition == 'PBCx + OBCy':
-        jx = ix + 1 if ix + 1 < Lx else 0
-        jy = iy + 1 if iy + 1 < Ly else 0
+        jx: int = (ix + 1) % Lx
+        jy: int = iy + 1 if iy + 1 < Ly else -i
         J1_arr[i] = (iy * Lx) + jx
         J2_arr[i] = (jy * Lx) + ix
-        if iy == Ly - 1:
-          J2_arr[i] = -i
       elif BoundaryCondition == 'OBCx + OBCy':
-        jx = ix + 1 if ix + 1 < Lx else 0
-        jy = iy + 1 if iy + 1 < Ly else 0
+        jx: int = ix + 1 if ix + 1 < Lx else -i
+        jy: int = iy + 1 if iy + 1 < Ly else -i
         J1_arr[i] = (iy * Lx) + jx
         J2_arr[i] = (jy * Lx) + ix
-        if ix == Lx - 1:
-          J1_arr[i] = -i
-        if iy == Ly - 1:
-          J2_arr[i] = -i
       else:
         raise ValueError(BC_Error)
   return J1_arr, J2_arr
@@ -347,156 +340,150 @@ def nambu_hamiltonian(Sx, Sy, Sz):
             H[col,row] = conj(H[row,col])
           
   return H
-  
-  
-def Bott_Index (Z):
-  Eth = np.zeros((n, n), dtype=complex)
-  Eph = np.zeros((n, n), dtype=complex)
-  IdnttyMat = np.identity(4)
-  
-  # lattice coordinate projection onto spherical torus
-  for iy in range (Ly):
-    for ix in range (Lx):
-      i = iy * Lx + ix
-      for c in range (TDOF):
-        for r in range (TDOF):
-          row = TDOF*i + r ; col = TDOF*i + c
-          Eth[row,col] = exp ( iota*(2.0*PI/Lx)*ix ) * IdnttyMat[r,c]
-          Eph[row,col] = exp ( iota*(2.0*PI/Ly)*iy ) * IdnttyMat[r,c]
-  
-  # define projector
-  Prj = np.zeros ((n,n), dtype=complex)  
-  # for k in range (n//2):
-  #   for i in range(n):
-  #     for j in range(n):
-  #       Prj[i, j] += Z[i, k] * conj(Z[j, k])
-  
-  # for k in range(n//2):
-  #   # Select the k-th column and its conjugate transpose
-  #   Z_k = Z[:, k]
-  #   Z_k_conj = np.conj(Z_k)
-    # Compute outer product and accumulate
-    # Prj += np.outer(Z_k, Z_k_conj)
-  Prj = np.dot(Z[:, :n//2], np.conj(Z[:, :n//2].T))
-  
-  # define position projected operators      
-  U = np.dot (Prj, np.dot(Eth,Prj))
-  V = np.dot (Prj, np.dot(Eph,Prj))
-  
-  # singular value decomposition of UMatrix and VMatrix
-  
-  # Bott matrix(W), VUV^{\dagger}U^{\dagger}
-  W = np.dot(V, np.dot(U, np.dot(conj(V.T), conj(U.T))))
-  
-  # Compute the expression (1 / (2 * np.pi)) * Im[tr[log W]]
-  BottIndex = (1 / (2.0 * PI)) * np.imag(np.trace(np.log(W)))
-  
-  return BottIndex
 
 
-def BHZ_hamiltonian(Sx, Sy, Sz):
-  # Initialize arrays
-  H = np.zeros((n, n), dtype=np.complex128)
-  # setting up lattice geometry
+
+
+
+
+
+
+
+
+
+def BHZ_hamiltonian(Sx: np.ndarray, Sy: np.ndarray, Sz: np.ndarray) -> np.ndarray:
+  H = np.zeros((n, n), dtype=np.complex64)
   J11, J22 = neighbor_array_square_lattice()
-  # J11, J22, J33 = neighbor_array_triangular_lattice()  
-  # Pauli matrices for orbital degrees of freedom
-  sigma_x = np.array([[0, 1], [1, 0]])
-  sigma_y = np.array([[0, -1j], [1j, 0]])
-  sigma_z = np.array([[1, 0], [0, -1]])
-  sigma_0 = np.identity(2)
-  # Pauli matrices for spin degrees of freedom
-  s_x = np.array([[0, 1], [1, 0]])
-  s_y = np.array([[0, -1j], [1j, 0]])
-  s_z = np.array([[1, 0], [0, -1]])
-  s_0 = np.identity(2)
-  # Pauli matrices for particle-hole degrees of freedom
-  tau_x = np.array([[0, 1], [1, 0]])
-  tau_y = np.array([[0, -1j], [1j, 0]])
-  tau_z = np.array([[1, 0], [0, -1]])
-  tau_0 = np.identity(2)
-  # Kronecker Product for PH and Spin space, [PH ⊗ Spin]
-  Gamma1 = np.kron(tau_z, np.kron(sigma_z, s_0))
-  Gamma2 = np.kron(tau_x, np.kron(sigma_0, s_0))
-  Gamma3 = np.kron(tau_0, np.kron(sigma_0, s_x))
-  Gamma4 = np.kron(tau_0, np.kron(sigma_0, s_y))
-  Gamma5 = np.kron(tau_0, np.kron(sigma_0, s_z))
-  Gamma6 = np.kron(tau_z, np.kron(sigma_x, s_z))
-  Gamma7 = np.kron(tau_z, np.kron(sigma_y, s_0))
-  Gamma8 = np.kron(tau_z, np.kron(sigma_x, s_x))
+  sigma_x = np.array([[0, 1], [1, 0]], dtype=np.complex64)
+  sigma_y = np.array([[0, -1j], [1j, 0]], dtype=np.complex64)
+  sigma_z = np.array([[1, 0], [0, -1]], dtype=np.complex64)
+  tau_x = np.array([[0, 1], [1, 0]], dtype=np.complex64)
+  tau_y = np.array([[0, -1j], [1j, 0]], dtype=np.complex64)
+  tau_z = np.array([[1, 0], [0, -1]], dtype=np.complex64)
+  Gamma1 = np.kron(tau_z, np.kron(sigma_z, np.eye(2, dtype=np.complex64)))
+  Gamma2 = np.kron(tau_x, np.kron(np.eye(2, dtype=np.complex64), np.eye(2, dtype=np.complex64)))
+  Gamma3 = np.kron(np.eye(2, dtype=np.complex64), np.kron(np.eye(2, dtype=np.complex64), sigma_x))
+  Gamma4 = np.kron(np.eye(2, dtype=np.complex64), np.kron(np.eye(2, dtype=np.complex64), sigma_y))
+  Gamma5 = np.kron(np.eye(2, dtype=np.complex64), np.kron(np.eye(2, dtype=np.complex64), sigma_z))
+  Gamma6 = np.kron(tau_z, np.kron(sigma_x, sigma_z))
+  Gamma7 = np.kron(tau_z, np.kron(sigma_y, np.eye(2, dtype=np.complex64)))
+  Gamma8 = np.kron(tau_z, np.kron(sigma_x, sigma_x))
   
-  # The Hamiltonian is given in Ref. PRB 109, L041409 (2024)
-  # \begin{eqnarray}
-  #   H & = & \sum_{i,j} c^{\dagger}_{i,j}[\{\mu \Gamma_1 + \Delta_0 \Gamma_2 + J_{\text{Hund}} (S_x \Gamma_3 + S_y \Gamma_4 + S_z \Gamma_5) \}c^{}_{i,j} \nonumber \\
-  #                                         & & - t \Gamma_1c^{}_{i+1,j} - t \Gamma_1c^{}_{i,j+1} ] + H.c.
-  # \end{eqnarray}
-  
-  for iy in range (Ly):
-    for ix in range (Lx):
+  for iy in range(Ly):
+    for ix in range(Lx):
       i = iy * Lx + ix
-      for c in range (TDOF):
-        for r in range (TDOF):
-          # hopping along x
+      for c in range(TDOF):
+        for r in range(TDOF):
           if J11[i] >= 0 and J11[i] != i:
             j1 = J11[i]
-            row = TDOF*i + r ; col = TDOF*j1 + c
-            H[row,col] = ( - tx * Gamma1[r,c]
-                           - 1j * Lambda_SOC_x * Gamma6[r,c]
-                           + Lambda_WD_x * Gamma8[r,c])
-            H[col,row] = conj(H[row,col])
-          # hopping along y
+            row, col = TDOF * i + r, TDOF * j1 + c
+            H[row, col] = (-tx * Gamma1[r, c] -
+                            1j * Lambda_SOC_x * Gamma6[r, c] +
+                            Lambda_WD_x * Gamma8[r, c])
+            H[col, row] = np.conj(H[row, col])
           if J22[i] >= 0 and J22[i] != i:
             j2 = J22[i]
-            row = TDOF*i + r ; col = TDOF*j2 + c
-            H[row,col] = ( - ty * Gamma1[r,c]
-                           - 1j * Lambda_SOC_y * Gamma7[r,c]
-                           - Lambda_WD_y * Gamma8[r,c])
-            H[col,row] = conj(H[row,col])
-          # hopping along diagonal
-          # if J33[i] >= 0 and J33[i] != i:
-          #   j3 = J33[i]
-          #   row = TDOF*i + r ; col = TDOF*j3 + c
-          #   H[row,col] = ( -0.5 * td * Gamma1[r,c] -
-          #                   1j * 0.5 * Lambda_SOC_d * Gamma4[r,c] -
-          #                   0.5 * Lambda_WD_d * Gamma3[r,c] )
-          #   H[col,row] = conj(H[row,col])
-          # onsite terms, Chemical potential, s-Wave SC, exchange J_Hund
-          row = TDOF*i + r ; col = TDOF*i + c
-          H[row,col] = (epsilon0 * Gamma1[r,c] + 
-                        Delta_s * Gamma2[r,c] + 
-                        (J_Hundx * Sx[ix, iy] * Gamma3[r,c] + 
-                         J_Hundy * Sy[ix, iy] * Gamma4[r,c] + 
-                         J_Hundz * Sz[ix, iy] * Gamma5[r,c]))
-          H[col,row] = conj(H[row,col])
-          
+            row, col = TDOF * i + r, TDOF * j2 + c
+            H[row, col] = (-ty * Gamma1[r, c] -
+                            1j * Lambda_SOC_y * Gamma7[r, c] -
+                            Lambda_WD_y * Gamma8[r, c])
+            H[col, row] = np.conj(H[row, col])
+          row, col = TDOF * i + r, TDOF * i + c
+          H[row, col] = ( epsilon0 * Gamma1[r, c] + 
+                          Delta_s * Gamma2[r, c] + 
+                          J_Hundx * Sx[ix, iy] * Gamma3[r, c] + 
+                          J_Hundy * Sy[ix, iy] * Gamma4[r, c] + 
+                          J_Hundz * Sz[ix, iy] * Gamma5[r, c] )
+          H[col, row] = np.conj(H[row, col])
   return H
-  
-def QuadrupoleMoment (Z):
-  Idntty = np.identity(TDOF)
-  
-  U = np.zeros ((n, int(n/2)), dtype=complex)
-  for j in range (int(n/2)):
-    for i in range (n):
-      U[i,j] = Z[i,j]
-  
-  q = np.zeros ((n, n), dtype=complex)
-  for iy in range (Ly):
-    for ix in range (Lx):
-      i = iy * Lx + ix
-      for c in range (TDOF):
-        for r in range (TDOF):
-          row = TDOF*i + r ; col = TDOF*i + c
-          q[row, col] = (ix*iy*Idntty[r,c])/Nsites
-            
-  W = expm(1j*2.0*PI*q)
-      
-  V = np.dot(conj(U).T, np.dot(W, U))
-  c1 = sp.linalg.det(V)
-  c2 = exp(-1j*PI*np.trace(q))
-  qxy = (1.0/(2.0*PI))*(ln(c1*c2))
 
-  return Im(qxy)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def BHZ_hamiltonian(Sx, Sy, Sz):
+#   # Initialize arrays
+#   H = np.zeros((n, n), dtype=np.complex128)
+#   # setting up lattice geometry
+#   J11, J22 = neighbor_array_square_lattice()
+#   # J11, J22, J33 = neighbor_array_triangular_lattice()  
+#   # Pauli matrices for orbital degrees of freedom
+#   sigma_x = np.array([[0, 1], [1, 0]])
+#   sigma_y = np.array([[0, -1j], [1j, 0]])
+#   sigma_z = np.array([[1, 0], [0, -1]])
+#   sigma_0 = np.identity(2)
+#   # Pauli matrices for spin degrees of freedom
+#   s_x = np.array([[0, 1], [1, 0]])
+#   s_y = np.array([[0, -1j], [1j, 0]])
+#   s_z = np.array([[1, 0], [0, -1]])
+#   s_0 = np.identity(2)
+#   # Pauli matrices for particle-hole degrees of freedom
+#   tau_x = np.array([[0, 1], [1, 0]])
+#   tau_y = np.array([[0, -1j], [1j, 0]])
+#   tau_z = np.array([[1, 0], [0, -1]])
+#   tau_0 = np.identity(2)
+#   # Kronecker Product for PH and Spin space, [PH ⊗ Spin]
+#   Gamma1 = np.kron(tau_z, np.kron(sigma_z, s_0))
+#   Gamma2 = np.kron(tau_x, np.kron(sigma_0, s_0))
+#   Gamma3 = np.kron(tau_0, np.kron(sigma_0, s_x))
+#   Gamma4 = np.kron(tau_0, np.kron(sigma_0, s_y))
+#   Gamma5 = np.kron(tau_0, np.kron(sigma_0, s_z))
+#   Gamma6 = np.kron(tau_z, np.kron(sigma_x, s_z))
+#   Gamma7 = np.kron(tau_z, np.kron(sigma_y, s_0))
+#   Gamma8 = np.kron(tau_z, np.kron(sigma_x, s_x))
   
+#   # The Hamiltonian is given in Ref. PRB 109, L041409 (2024)
+#   # \begin{eqnarray}
+#   #   H & = & \sum_{i,j} c^{\dagger}_{i,j}[\{\mu \Gamma_1 + \Delta_0 \Gamma_2 + J_{\text{Hund}} (S_x \Gamma_3 + S_y \Gamma_4 + S_z \Gamma_5) \}c^{}_{i,j} \nonumber \\
+#   #                                         & & - t \Gamma_1c^{}_{i+1,j} - t \Gamma_1c^{}_{i,j+1} ] + H.c.
+#   # \end{eqnarray}
   
-  
+#   for iy in range (Ly):
+#     for ix in range (Lx):
+#       i = iy * Lx + ix
+#       for c in range (TDOF):
+#         for r in range (TDOF):
+#           # hopping along x
+#           if J11[i] >= 0 and J11[i] != i:
+#             j1 = J11[i]
+#             row = TDOF*i + r ; col = TDOF*j1 + c
+#             H[int(row), int(col)] = ( - tx * Gamma1[r,c]
+#                                       - 1j * Lambda_SOC_x * Gamma6[r,c]
+#                                       + Lambda_WD_x * Gamma8[r,c])
+#             H[int(col), int(row)] = conj(H[int(row), int(col)])
+#           # hopping along y
+#           if J22[i] >= 0 and J22[i] != i:
+#             j2 = J22[i]
+#             row = TDOF*i + r ; col = TDOF*j2 + c
+#             H[int(row), int(col)] = ( - ty * Gamma1[r,c]
+#                                       - 1j * Lambda_SOC_y * Gamma7[r,c]
+#                                       - Lambda_WD_y * Gamma8[r,c])
+#             H[int(col), int(row)] = conj(H[int(row), int(col)])
+#           # hopping along diagonal
+#           # if J33[i] >= 0 and J33[i] != i:
+#           #   j3 = J33[i]
+#           #   row = TDOF*i + r ; col = TDOF*j3 + c
+#           #   H[row,col] = ( -0.5 * td * Gamma1[r,c] -
+#           #                   1j * 0.5 * Lambda_SOC_d * Gamma4[r,c] -
+#           #                   0.5 * Lambda_WD_d * Gamma3[r,c] )
+#           #   H[col,row] = conj(H[row,col])
+#           # onsite terms, Chemical potential, s-Wave SC, exchange J_Hund
+#           row = TDOF*i + r ; col = TDOF*i + c
+#           H[int(row), int(col)] = (epsilon0 * Gamma1[r,c] + 
+#                                    Delta_s * Gamma2[r,c] + 
+#                                   (J_Hundx * Sx[ix, iy] * Gamma3[r,c] + 
+#                                    J_Hundy * Sy[ix, iy] * Gamma4[r,c] + 
+#                                    J_Hundz * Sz[ix, iy] * Gamma5[r,c]))
+#           H[int(col), int(row)] = conj(H[int(row), int(col)])
+          
+#   return H
